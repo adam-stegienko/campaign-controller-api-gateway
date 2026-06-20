@@ -1,0 +1,20 @@
+gateway:
+  routes:
+    - id: campaign-api
+      uri: http://campaign-api.dev.svc.cluster.local:8081
+    - id: google-ads-api
+      uri: http://google-ads-api.dev.svc.cluster.local:8082
+
+# OpenAPI properties
+springdoc:
+  swagger-ui:
+    enabled: true
+    operations-sorter: method
+    path: /swagger-ui
+  api-docs:
+    path: /api-docs
+
+logging:
+  level:
+    io.micrometer.tracing: DEBUG
+    org.springframework.web: DEBUG
