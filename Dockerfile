@@ -61,11 +61,11 @@ WORKDIR /app
 
 # Download OTEL agent
 RUN set -eux; \
-  URL="https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/${OTEL_VERSION}/opentelemetry-javaagent-${OTEL_VERSION}"; \
-  curl -fsSL -o opentelemetry-javaagent.jar "${URL}.jar"; \
-  curl -fsSL -o opentelemetry-javaagent.jar.sha256 "${URL}.jar.sha256"; \
-  echo "$(cat opentelemetry-javaagent.jar.sha256)  opentelemetry-javaagent.jar" | sha256sum -c - || exit 1; \
-  rm -f opentelemetry-javaagent.jar.sha256
+    URL="https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/${OTEL_VERSION}/opentelemetry-javaagent-${OTEL_VERSION}.jar"; \
+    curl -fsSL -o opentelemetry-javaagent.jar "${URL}"; \
+    curl -fsSL -o opentelemetry-javaagent.jar.sha256 "${URL}.sha256"; \
+    echo "$(cat opentelemetry-javaagent.jar.sha256)  opentelemetry-javaagent.jar" | sha256sum -c -; \
+    rm opentelemetry-javaagent.jar.sha256
 
 # Create a volume for temporary files - this will be writable even in restricted environments
 VOLUME ["/tmp"]
