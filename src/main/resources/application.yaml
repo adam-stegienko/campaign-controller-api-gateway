@@ -12,10 +12,8 @@ server:
 
 gateway:
   routes:
-    - id: campaign-api
-      uri: ${CAMPAIGN_API_URI:http://localhost:8081}
-    - id: google-ads-api
-      uri: ${GOOGLE_ADS_API_URI:http://localhost:8082}
+    campaign-controller-api: ${CAMPAIGN_CONTROLLER_API_URI:http://localhost:8081}
+    google-ads-api: ${GOOGLE_ADS_API_URI:http://localhost:8082}
 
 # Actuator configuration for health checks
 management:

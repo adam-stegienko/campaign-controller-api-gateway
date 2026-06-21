@@ -1,6 +1,7 @@
 package com.adam_stegienko.campaign_controller_api_gateway.services;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -73,9 +74,9 @@ public class ProxyService {
     }
 
     private String resolveTargetUri(String serviceId) {
-        return routesProperties.getRoutes().stream()
-                .filter(r -> r.getId().equalsIgnoreCase(serviceId))
-                .map(GatewayRoutesProperties.RouteDefinition::getUri)
+        return routesProperties.getRoutes().entrySet().stream()
+                .filter(e -> e.getKey().equalsIgnoreCase(serviceId))
+                .map(Map.Entry::getValue)
                 .findFirst()
                 .orElse(null);
     }

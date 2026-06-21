@@ -1,7 +1,7 @@
 package com.adam_stegienko.campaign_controller_api_gateway.services;
 
 import java.net.URI;
-import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,10 +36,7 @@ class ProxyServiceTest {
     @BeforeEach
     void setUp() {
         routesProperties = new GatewayRoutesProperties();
-        GatewayRoutesProperties.RouteDefinition route = new GatewayRoutesProperties.RouteDefinition();
-        route.setId("campaign-api");
-        route.setUri("http://campaign-api-service:8081");
-        routesProperties.setRoutes(List.of(route));
+        routesProperties.setRoutes(Map.of("campaign-api", "http://campaign-api-service:8081"));
         proxyService = new ProxyService(restTemplate, routesProperties);
     }
 

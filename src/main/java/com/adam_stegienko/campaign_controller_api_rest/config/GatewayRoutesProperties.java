@@ -1,7 +1,7 @@
 package com.adam_stegienko.campaign_controller_api_gateway.config;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -10,35 +10,13 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "gateway")
 public class GatewayRoutesProperties {
 
-    private List<RouteDefinition> routes = new ArrayList<>();
+    private Map<String, String> routes = new LinkedHashMap<>();
 
-    public List<RouteDefinition> getRoutes() {
+    public Map<String, String> getRoutes() {
         return routes;
     }
 
-    public void setRoutes(List<RouteDefinition> routes) {
+    public void setRoutes(Map<String, String> routes) {
         this.routes = routes;
-    }
-
-    public static class RouteDefinition {
-
-        private String id;
-        private String uri;
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getUri() {
-            return uri;
-        }
-
-        public void setUri(String uri) {
-            this.uri = uri;
-        }
     }
 }

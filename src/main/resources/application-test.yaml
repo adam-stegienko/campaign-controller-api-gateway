@@ -14,10 +14,8 @@ spring:
 
 gateway:
   routes:
-    - id: campaign-api
-      uri: http://localhost:18081
-    - id: google-ads-api
-      uri: http://localhost:18082
+    campaign-controller-api: http://localhost:18081
+    google-ads-api: http://localhost:18082
 
 # OpenAPI properties
 springdoc:
