@@ -23,6 +23,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import com.adam_stegienko.campaign_controller_api_gateway.config.GatewayRoutesProperties;
+import com.adam_stegienko.campaign_controller_api_gateway.services.ProxyService;
 
 @ExtendWith(MockitoExtension.class)
 class ProxyServiceTest {

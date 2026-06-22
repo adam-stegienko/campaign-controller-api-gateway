@@ -1,5 +1,6 @@
 package com.adam_stegienko.campaign_controller_api_gateway.controller;
 
+import com.adam_stegienko.campaign_controller_api_gateway.controller.GatewayController;
 import com.adam_stegienko.campaign_controller_api_gateway.services.ProxyService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

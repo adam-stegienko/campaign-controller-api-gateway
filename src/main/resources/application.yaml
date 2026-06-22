@@ -9,6 +9,8 @@ spring:
 
 server:
   port: 8000
+  http2:
+    enabled: true
 
 gateway:
   routes:
