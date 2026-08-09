@@ -71,7 +71,10 @@ public class ProxyService {
             HttpHeaders responseHeaders = e.getResponseHeaders() != null
                     ? new HttpHeaders(e.getResponseHeaders())
                     : new HttpHeaders();
+
+            stripDownstreamResponseHeaders(responseHeaders);
             applyResponseFilters(responseHeaders, responseFilters);
+            
             return ResponseEntity.status(e.getStatusCode())
                     .headers(responseHeaders)
                     .body(e.getResponseBodyAsByteArray());
@@ -80,6 +83,15 @@ public class ProxyService {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                     .body(("Downstream service unreachable: " + serviceId).getBytes());
         }
+    }
+
+    private void stripDownstreamResponseHeaders(HttpHeaders headers) {
+        // Forcing removal allows Tomcat/Spring to recalculate accurate lengths
+        headers.remove(HttpHeaders.CONTENT_LENGTH);
+        headers.remove(HttpHeaders.TRANSFER_ENCODING);
+        headers.remove(HttpHeaders.CONNECTION);
+        headers.remove("Keep-Alive");
+        headers.remove("Upgrade");
     }
 
     private RouteDefinition resolveRoute(String serviceId) {
@@ -93,6 +105,10 @@ public class ProxyService {
     private ResponseEntity<byte[]> applyConfiguredFilters(ResponseEntity<byte[]> response, List<String> filters) {
         HttpHeaders copiedHeaders = new HttpHeaders();
         copiedHeaders.putAll(response.getHeaders());
+        
+        // 1. CRITICAL: Strip hop-by-hop and length headers from the downstream response
+        stripDownstreamResponseHeaders(copiedHeaders);
+        
         applyResponseFilters(copiedHeaders, filters);
 
         return ResponseEntity.status(response.getStatusCode())
