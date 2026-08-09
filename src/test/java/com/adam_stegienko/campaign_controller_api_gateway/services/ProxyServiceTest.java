@@ -1,6 +1,7 @@
 package com.adam_stegienko.campaign_controller_api_gateway.services;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,7 +24,6 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import com.adam_stegienko.campaign_controller_api_gateway.config.GatewayRoutesProperties;
-import com.adam_stegienko.campaign_controller_api_gateway.services.ProxyService;
 
 @ExtendWith(MockitoExtension.class)
 class ProxyServiceTest {
@@ -131,5 +131,39 @@ class ProxyServiceTest {
                 HttpMethod.GET, new HttpHeaders(), new byte[0]);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void proxyAppliesConfiguredResponseHeaderFilters() {
+        routesProperties.setRoutes(Map.of(
+                "campaign-api",
+                Map.of(
+                        "uri", "http://campaign-api-service:8081",
+                        "filters", List.of(
+                                "DeduplicateResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Vary RETAIN_LAST",
+                                "RemoveResponseHeader=Transfer-Encoding"
+                        )
+                )
+        ));
+
+        HttpHeaders downstreamHeaders = new HttpHeaders();
+        downstreamHeaders.add("Access-Control-Allow-Origin", "https://old.example");
+        downstreamHeaders.add("Access-Control-Allow-Origin", "https://new.example");
+        downstreamHeaders.add("Vary", "Origin");
+        downstreamHeaders.add("Vary", "Access-Control-Request-Method");
+        downstreamHeaders.add("Transfer-Encoding", "chunked");
+
+        when(restTemplate.exchange(any(URI.class), eq(HttpMethod.GET), any(), eq(byte[].class)))
+                .thenReturn(ResponseEntity.ok().headers(downstreamHeaders).body(new byte[0]));
+
+        ResponseEntity<byte[]> response = proxyService.proxy(
+                "campaign-api", "/v1/api/campaigns",
+                HttpMethod.GET, new HttpHeaders(), new byte[0]);
+
+        assertThat(response.getHeaders().get("Access-Control-Allow-Origin"))
+                .containsExactly("https://new.example");
+        assertThat(response.getHeaders().get("Vary"))
+                .containsExactly("Access-Control-Request-Method");
+        assertThat(response.getHeaders().containsKey("Transfer-Encoding")).isFalse();
     }
 }

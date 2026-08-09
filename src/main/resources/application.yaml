@@ -14,8 +14,20 @@ server:
 
 gateway:
   routes:
-    campaign-controller-api: ${GATEWAY_ROUTES_CAMPAIGN-CONTROLLER-API:http://localhost:8081}
-    google-api: ${GATEWAY_ROUTES_GOOGLE-API:http://localhost:8082}
+    campaign-controller-api:
+      uri: ${GATEWAY_ROUTES_CAMPAIGN-CONTROLLER-API:http://localhost:8081}
+      filters:
+        # Strip out duplicate CORS/Vary headers that we saw earlier
+        - DeduplicateResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Vary RETAIN_LAST
+        # Prevent HTTP chunk/length protocol mismatches on small payloads
+        - RemoveResponseHeader=Transfer-Encoding
+    google-api:
+      uri: ${GATEWAY_ROUTES_GOOGLE-API:http://localhost:8082}
+      filters:
+        # Strip out duplicate CORS/Vary headers that we saw earlier
+        - DeduplicateResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Vary RETAIN_LAST
+        # Prevent HTTP chunk/length protocol mismatches on small payloads
+        - RemoveResponseHeader=Transfer-Encoding
 
 # Actuator configuration for health checks
 management:

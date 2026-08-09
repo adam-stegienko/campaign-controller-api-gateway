@@ -1,6 +1,8 @@
 package com.adam_stegienko.campaign_controller_api_gateway.services;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.adam_stegienko.campaign_controller_api_gateway.config.GatewayRoutesProperties;
+import com.adam_stegienko.campaign_controller_api_gateway.config.GatewayRoutesProperties.RouteDefinition;
 
 @Service
 public class ProxyService {
@@ -40,8 +43,10 @@ public class ProxyService {
     public ResponseEntity<byte[]> proxy(String serviceId, String downstreamPath,
                                          HttpMethod method, HttpHeaders incomingHeaders,
                                          byte[] body) {
-        String targetUri = resolveTargetUri(serviceId);
-        if (targetUri == null) {
+        RouteDefinition routeDefinition = resolveRoute(serviceId);
+        String targetUri = routeDefinition != null ? routeDefinition.getUri() : null;
+        List<String> responseFilters = routeDefinition != null ? routeDefinition.getFilters() : List.of();
+        if (targetUri == null || targetUri.isBlank()) {
             log.warn("No route found for service: {}", serviceId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(("No route configured for service: " + serviceId).getBytes());
@@ -60,11 +65,15 @@ public class ProxyService {
         log.debug("Proxying {} {} -> {}", method, downstreamPath, destination);
 
         try {
-            return restTemplate.exchange(destination, method, requestEntity, byte[].class);
+            ResponseEntity<byte[]> downstreamResponse = restTemplate.exchange(destination, method, requestEntity, byte[].class);
+            return applyConfiguredFilters(downstreamResponse, responseFilters);
         } catch (HttpStatusCodeException e) {
-            HttpHeaders responseHeaders = e.getResponseHeaders();
+            HttpHeaders responseHeaders = e.getResponseHeaders() != null
+                    ? new HttpHeaders(e.getResponseHeaders())
+                    : new HttpHeaders();
+            applyResponseFilters(responseHeaders, responseFilters);
             return ResponseEntity.status(e.getStatusCode())
-                    .headers(responseHeaders != null ? responseHeaders : new HttpHeaders())
+                    .headers(responseHeaders)
                     .body(e.getResponseBodyAsByteArray());
         } catch (ResourceAccessException e) {
             log.error("Downstream service unreachable: {}", destination, e);
@@ -73,12 +82,79 @@ public class ProxyService {
         }
     }
 
-    private String resolveTargetUri(String serviceId) {
+    private RouteDefinition resolveRoute(String serviceId) {
         return routesProperties.getRoutes().entrySet().stream()
                 .filter(e -> e.getKey().equalsIgnoreCase(serviceId))
                 .map(Map.Entry::getValue)
                 .findFirst()
                 .orElse(null);
+    }
+
+    private ResponseEntity<byte[]> applyConfiguredFilters(ResponseEntity<byte[]> response, List<String> filters) {
+        HttpHeaders copiedHeaders = new HttpHeaders();
+        copiedHeaders.putAll(response.getHeaders());
+        applyResponseFilters(copiedHeaders, filters);
+
+        return ResponseEntity.status(response.getStatusCode())
+                .headers(copiedHeaders)
+                .body(response.getBody());
+    }
+
+    private void applyResponseFilters(HttpHeaders headers, List<String> filters) {
+        if (filters == null || filters.isEmpty()) {
+            return;
+        }
+
+        for (String filter : filters) {
+            if (filter == null || filter.isBlank()) {
+                continue;
+            }
+            if (filter.startsWith("RemoveResponseHeader=")) {
+                String headerName = filter.substring("RemoveResponseHeader=".length()).trim();
+                if (!headerName.isEmpty()) {
+                    headers.remove(headerName);
+                }
+                continue;
+            }
+
+            if (filter.startsWith("DeduplicateResponseHeader=")) {
+                String args = filter.substring("DeduplicateResponseHeader=".length()).trim();
+                deduplicateResponseHeaders(headers, args);
+            }
+        }
+    }
+
+    private void deduplicateResponseHeaders(HttpHeaders headers, String args) {
+        if (args.isBlank()) {
+            return;
+        }
+
+        String[] tokens = args.split("\\s+");
+        if (tokens.length == 0) {
+            return;
+        }
+
+        boolean retainLast = false;
+        List<String> headerNames = new ArrayList<>();
+        for (String token : tokens) {
+            if ("RETAIN_LAST".equalsIgnoreCase(token)) {
+                retainLast = true;
+                continue;
+            }
+            if ("RETAIN_FIRST".equalsIgnoreCase(token)) {
+                continue;
+            }
+            headerNames.add(token);
+        }
+
+        for (String headerName : headerNames) {
+            List<String> values = headers.get(headerName);
+            if (values == null || values.size() <= 1) {
+                continue;
+            }
+            String selectedValue = retainLast ? values.get(values.size() - 1) : values.get(0);
+            headers.put(headerName, List.of(selectedValue));
+        }
     }
 
     private HttpHeaders filterHeaders(HttpHeaders incoming) {
